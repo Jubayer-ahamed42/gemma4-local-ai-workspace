@@ -1,0 +1,19 @@
+# Operating System Files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs & Temp files
+*.log
+*.tmp
+
+# Environment
+.env
+.env.local
+
+# Ollama Models & Cache (Do NOT commit model weights)
+models/
+blobs/
+manifests/
+*.gguf
+*.bin

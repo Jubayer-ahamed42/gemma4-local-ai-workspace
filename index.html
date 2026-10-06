@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="bn" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemma 4 AI Workspace — Local Offline Assistant</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+            darkBg: '#0f172a',
+            darkCard: '#1e293b',
+            darkInput: '#334155'
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Marked Markdown Parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Highlight.js for Code Highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    /* Markdown Styling */
+    .prose p { margin-bottom: 0.75rem; line-height: 1.6; }
+    .prose p:last-child { margin-bottom: 0; }
+    .prose h1, .prose h2, .prose h3 { font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem; color: #f8fafc; }
+    .prose ul, .prose ol { margin-left: 1.5rem; margin-bottom: 0.75rem; list-style-type: disc; }
+    .prose ol { list-style-type: decimal; }
+    .prose pre { background: #090d16; padding: 1rem; border-radius: 0.75rem; margin: 0.75rem 0; overflow-x: auto; border: 1px solid #1e293b; }
+    .prose code:not(pre code) { background: #1e293b; padding: 0.2rem 0.4rem; border-radius: 0.375rem; font-family: monospace; font-size: 0.875rem; color: #a5b4fc; }
+    .prose blockquote { border-left: 4px solid #6366f1; padding-left: 1rem; color: #94a3b8; font-style: italic; }
+    
+    /* Blinking cursor during streaming */
+    .typing-cursor::after {
+      content: '▋';
+      display: inline-block;
+      vertical-align: baseline;
+      animation: blink 1s step-start infinite;
+      color: #818cf8;
+      margin-left: 2px;
+    }
+    @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+  </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col font-sans antialiased overflow-hidden select-text">
+
+  <!-- Main Container -->
+  <div class="flex h-screen w-screen overflow-hidden">
+
+    <!-- Left Sidebar: Chat History -->
+    <aside id="sidebar" class="w-72 bg-[#090e1a] border-r border-slate-800 flex flex-col transition-all duration-300 z-30 fixed inset-y-0 left-0 md:static md:translate-x-0 -translate-x-full">
+      <!-- Sidebar Header -->
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <i class="fa-solid fa-brain text-white text-sm"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-sm text-white tracking-wide">Gemma 4 Core</h1>
+            <p class="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Local AI Active
+            </p>
+          </div>
+        </div>
+        <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- New Chat Button -->
+      <div class="p-3">
+        <button onclick="startNewChat()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98]">
+          <i class="fa-solid fa-plus"></i>
+          <span>নতুন চ্যাট শুরু করুন</span>
+        </button>
+      </div>
+
+      <!-- History List -->
+      <div class="flex-1 overflow-y-auto p-3 space-y-1" id="chatHistoryList">
+        <!-- Rendered via JS -->
+      </div>
+
+      <!-- Sidebar Footer -->
+      <div class="p-3 border-t border-slate-800/80 bg-[#070b14]">
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+            <span class="font-medium text-slate-300">Intel i5 Core Engine</span>
+          </div>
+          <button onclick="clearAllChats()" class="text-slate-500 hover:text-red-400 transition" title="সকল হিস্ট্রি ক্লিয়ার করুন">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Chat Workspace -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-darkBg relative">
+
+      <!-- Top Navigation Bar -->
+      <header class="h-14 border-b border-slate-800/80 bg-darkBg/95 backdrop-blur px-4 flex items-center justify-between shrink-0 z-20">
+        <div class="flex items-center gap-3">
+          <button onclick="toggleSidebar()" class="md:hidden text-slate-300 hover:text-white p-1">
+            <i class="fa-solid fa-bars text-base"></i>
+          </button>
+
+          <!-- Model Badge -->
+          <div class="flex items-center gap-2 bg-darkCard border border-slate-700/60 rounded-xl px-3 py-1.5 shadow-sm">
+            <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+            <select id="modelSelector" class="bg-transparent text-xs font-semibold text-slate-200 outline-none cursor-pointer">
+              <option value="gemma4:e4b" selected>Google Gemma 4 (E4B)</option>
+            </select>
+          </div>
+
+          <!-- Persona Preset -->
+          <div class="hidden sm:flex items-center gap-1.5 bg-darkCard/60 border border-slate-800 rounded-xl px-2.5 py-1">
+            <span class="text-[11px] text-slate-400">মোড:</span>
+            <select id="personaSelector" onchange="changePersona()" class="bg-transparent text-xs font-medium text-indigo-300 outline-none cursor-pointer">
+              <option value="general">🤖 সার্বিক সহকারী</option>
+              <option value="coder">💻 কোডিং এক্সপার্ট</option>
+              <option value="copywriter">📢 মার্কেটিং ও সেলস</option>
+              <option value="nutritionist">🌿 স্বাস্থ্য ও পুষ্টি</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Right Action Items -->
+        <div class="flex items-center gap-3">
+          <div class="text-[11px] text-slate-400 hidden lg:flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
+            <span id="speedIndicator">~23 tokens/sec</span>
+          </div>
+
+          <button onclick="exportChat()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-slate-700 transition" title="চ্যাট এক্সপোর্ট করুন">
+            <i class="fa-solid fa-download"></i>
+            <span class="hidden sm:inline">Save</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Chat Messages Container -->
+      <div id="messagesContainer" class="flex-1 overflow-y-auto px-4 py-6 space-y-6 max-w-4xl w-full mx-auto">
+
+        <!-- Welcome Hero (shown when no messages) -->
+        <div id="welcomeHero" class="text-center py-10 space-y-6">
+          <div class="inline-flex w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 items-center justify-center shadow-xl shadow-indigo-500/20 animate-bounce duration-1000">
+            <i class="fa-solid fa-wand-magic-sparkles text-white text-2xl"></i>
+          </div>
+
+          <div class="space-y-2">
+            <h2 class="text-2xl font-bold text-white tracking-wide">স্বাগতম বন্ধু জুবায়ের!</h2>
+            <p class="text-sm text-slate-400 max-w-md mx-auto">
+              গুগল ডিপমাইন্ডের লেটেস্ট <strong class="text-indigo-400">Gemma 4 (E4B)</strong> সম্পূর্ণ অফলাইনে তোমার পিসির কোর i5 প্রসেসরে প্রস্তুত।
+            </p>
+          </div>
+
+          <!-- Quick Suggestion Buttons -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-xl mx-auto pt-2 text-left">
+            <button onclick="sendQuickPrompt('ফ্রেশি ফুডের খাঁটি মধুর জন্য একটি রোমাঞ্চকর ফেসবুক অ্যাড কপি লিখে দাও')" class="p-3 rounded-xl bg-darkCard border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80 transition text-xs text-slate-300 flex items-start gap-2.5 group">
+              <span class="text-base text-amber-400">🍯</span>
+              <div>
+                <strong class="text-white block group-hover:text-indigo-300 transition">ফ্রেশি ফুড অ্যাড কপি</strong>
+                <span>খাঁটি মধুর জন্য হাই-কনভার্টিং বিজ্ঞাপন</span>
+              </div>
+            </button>
+
+            <button onclick="sendQuickPrompt('পাইথনে একটি অটোমেটিক ফেসবুক পেজ পোস্ট শিডিউলার স্ক্রিপ্ট লিখে দাও')" class="p-3 rounded-xl bg-darkCard border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80 transition text-xs text-slate-300 flex items-start gap-2.5 group">
+              <span class="text-base text-cyan-400">💻</span>
+              <div>
+                <strong class="text-white block group-hover:text-indigo-300 transition">পাইথন অটোমেশন কোড</strong>
+                <span>সোশ্যাল মিডিয়া শিডিউলার তৈরি</span>
+              </div>
+            </button>
+
+            <button onclick="sendQuickPrompt('ডায়াবেটিস ও গ্যাস্ট্রিক রোগীদের জন্য খাঁটি মধু খাওয়ার বৈজ্ঞানিক নিয়ম কী?')" class="p-3 rounded-xl bg-darkCard border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80 transition text-xs text-slate-300 flex items-start gap-2.5 group">
+              <span class="text-base text-emerald-400">🌿</span>
+              <div>
+                <strong class="text-white block group-hover:text-indigo-300 transition">স্বাস্থ্য ও পুষ্টি পরামর্শ</strong>
+                <span>ডায়াবেটিসে মধু খাওয়ার সঠিক নিয়ম</span>
+              </div>
+            </button>
+
+            <button onclick="sendQuickPrompt('সফল সফটওয়্যার উদ্যোক্তা হওয়ার জন্য প্রতিদিনের ৩টি সেরা অভ্যাস কী?')" class="p-3 rounded-xl bg-darkCard border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80 transition text-xs text-slate-300 flex items-start gap-2.5 group">
+              <span class="text-base text-purple-400">🚀</span>
+              <div>
+                <strong class="text-white block group-hover:text-indigo-300 transition">এন্টারপ্রেনিউরশিপ মাইন্ডসেট</strong>
+                <span>সফটওয়্যার বিজনেসের জন্য প্রতিদিনের রুটিন</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat Bubble Thread will render here -->
+        <div id="messagesThread" class="space-y-6"></div>
+
+      </div>
+
+      <!-- Bottom Chat Input Bar -->
+      <div class="border-t border-slate-800 bg-[#090e1a]/90 backdrop-blur p-4 shrink-0">
+        <div class="max-w-4xl mx-auto">
+          <form id="chatForm" onsubmit="handleChatSubmit(event)" class="relative flex items-end bg-darkCard border border-slate-700/80 rounded-2xl shadow-xl focus-within:border-indigo-500 transition-all">
+            
+            <!-- Voice Input Button (Speech-to-Text) -->
+            <button type="button" id="micBtn" onclick="toggleSpeechRecognition()" class="p-3 text-slate-400 hover:text-indigo-400 transition" title="মুখে বাংলায় কথা বলুন (Voice Input)">
+              <i class="fa-solid fa-microphone text-base"></i>
+            </button>
+
+            <!-- Text Area Input -->
+            <textarea 
+              id="promptInput"
+              rows="1"
+              placeholder="Gemma 4-কে বাংলায় যেকোনো প্রশ্ন করুন..."
+              onkeydown="handleKeydown(event)"
+              class="w-full bg-transparent text-sm text-white placeholder-slate-400 py-3 px-2 outline-none resize-none max-h-36 overflow-y-auto leading-relaxed"
+            ></textarea>
+
+            <!-- Action Buttons: Stop / Send -->
+            <div class="p-2 flex items-center gap-1.5">
+              <button type="button" id="stopBtn" onclick="stopGenerating()" class="hidden bg-rose-600 hover:bg-rose-500 text-white p-2.5 rounded-xl text-xs transition" title="থামান">
+                <i class="fa-solid fa-square"></i>
+              </button>
+
+              <button type="submit" id="sendBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2.5 rounded-xl text-sm transition shadow-md shadow-indigo-600/30 active:scale-95">
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </div>
+          </form>
+
+          <!-- Status Footer -->
+          <div class="mt-2 text-center text-[11px] text-slate-500 flex items-center justify-center gap-3">
+            <span>🛡️ ১০০% অফলাইন ও ব্যক্তিগত — ডাটা পিসির বাইরে যায় না</span>
+            <span>•</span>
+            <span class="text-indigo-400/80 font-mono">localhost:11434</span>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    const OLLAMA_HOST = 'http://127.0.0.1:11434';
+    let currentModel = 'gemma4:e4b';
+    let isGenerating = false;
+    let abortController = null;
+    let chats = JSON.parse(localStorage.getItem('gemma_chats') || '[]');
+    let currentChatId = null;
+
+    // Personas System Prompts
+    const PERSONAS = {
+      general: "তুমি গুগল ডিপমাইন্ডের তৈরি আধুনিক ভাষা মডেল Gemma 4। তুমি বন্ধু জুবায়েরকে তার পার্সোনাল ও ব্যবসায়িক সব কাজে আন্তরিক, তথ্যবহুল ও স্পষ্ট বাংলায় সহযোগিতা করবে।",
+      coder: "তুমি একজন বিশ্বমানের সিনিয়র ফুল-স্ট্যাক ও এআই ইঞ্জিনিয়ার। তুমি পাইথন, জাভাস্ক্রিপ্ট, ডাটাবেজ ও ক্লাউড আর্কিটেকচারের নিখুঁত, অপটিমাইজড কোড ও বাগ সমাধান দেবে।",
+      copywriter: "তুমি একজন মাস্টার ডিরেক্ট-রেসপন্স কপিরাইটার ও সোশ্যাল মিডিয়া মারকেটিং বিশেষজ্ঞ। তুমি ফ্রেশি ফুড ও এজেন্সির জন্য অত্যন্ত আকর্ষণীয়, আবেগপূর্ণ ও উচ্চ-কনভার্সন সম্পন্ন সেলস কপি লিখবে।",
+      nutritionist: "তুমি একজন প্রাকৃতিক খাদ্য ও পুষ্টি বিশেষজ্ঞ। তুমি সুন্দরবনের খাঁটি র' মধু, রয়েল হানি নাট ও সুগার-ফ্রি ডার্ক চকলেটের স্বাস্থ্য ও আয়ুর্বেদিক গুণাবলী বিজ্ঞানসম্মতভাবে ব্যাখ্যা করবে।"
+    };
+
+    let activeSystemPrompt = PERSONAS.general;
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadChatHistory();
+      if (chats.length > 0) {
+        selectChat(chats[0].id);
+      } else {
+        startNewChat();
+      }
+      autoResizeTextarea();
+    });
+
+    // Auto resize input
+    const promptInput = document.getElementById('promptInput');
+    promptInput.addEventListener('input', () => {
+      promptInput.style.height = 'auto';
+      promptInput.style.height = Math.min(promptInput.scrollHeight, 140) + 'px';
+    });
+
+    function handleKeydown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById('chatForm').requestSubmit();
+      }
+    }
+
+    function toggleSidebar() {
+      const sb = document.getElementById('sidebar');
+      sb.classList.toggle('-translate-x-full');
+    }
+
+    function changePersona() {
+      const p = document.getElementById('personaSelector').value;
+      activeSystemPrompt = PERSONAS[p] || PERSONAS.general;
+    }
+
+    // Chat Management
+    function startNewChat() {
+      currentChatId = 'chat_' + Date.now();
+      const newChat = {
+        id: currentChatId,
+        title: 'নতুন কথোপকথন',
+        messages: [],
+        timestamp: new Date().toISOString()
+      };
+      chats.unshift(newChat);
+      saveChats();
+      renderChatHistory();
+      renderMessages();
+    }
+
+    function selectChat(id) {
+      currentChatId = id;
+      renderChatHistory();
+      renderMessages();
+      if (window.innerWidth < 768) {
+        document.getElementById('sidebar').classList.add('-translate-x-full');
+      }
+    }
+
+    function getCurrentChat() {
+      return chats.find(c => c.id === currentChatId) || chats[0];
+    }
+
+    function saveChats() {
+      localStorage.setItem('gemma_chats', JSON.stringify(chats));
+    }
+
+    function clearAllChats() {
+      if (confirm('আপনি কি সব চ্যাট হিস্ট্রি মুছে ফেলতে চান?')) {
+        chats = [];
+        saveChats();
+        startNewChat();
+      }
+    }
+
+    function renderChatHistory() {
+      const list = document.getElementById('chatHistoryList');
+      list.innerHTML = '';
+      chats.forEach(chat => {
+        const isActive = chat.id === currentChatId;
+        const item = document.createElement('div');
+        item.className = `group flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition ${isActive ? 'bg-indigo-600/20 text-indigo-300 font-semibold border border-indigo-500/30' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'}`;
+        item.innerHTML = `
+          <div class="flex items-center gap-2 truncate flex-1" onclick="selectChat('${chat.id}')">
+            <i class="fa-regular fa-message text-xs ${isActive ? 'text-indigo-400' : 'text-slate-500'}"></i>
+            <span class="truncate">${chat.title || 'কথোপকথন'}</span>
+          </div>
+          <button onclick="event.stopPropagation(); deleteChat('${chat.id}')" class="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 transition">
+            <i class="fa-solid fa-trash-can text-[10px]"></i>
+          </button>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function deleteChat(id) {
+      chats = chats.filter(c => c.id !== id);
+      saveChats();
+      if (chats.length === 0) {
+        startNewChat();
+      } else {
+        selectChat(chats[0].id);
+      }
+    }
+
+    function loadChatHistory() {
+      renderChatHistory();
+    }
+
+    // Render Messages inside Main Thread
+    function renderMessages() {
+      const chat = getCurrentChat();
+      const hero = document.getElementById('welcomeHero');
+      const thread = document.getElementById('messagesThread');
+
+      if (!chat || chat.messages.length === 0) {
+        hero.classList.remove('hidden');
+        thread.innerHTML = '';
+        return;
+      }
+
+      hero.classList.add('hidden');
+      thread.innerHTML = '';
+
+      chat.messages.forEach((msg, idx) => {
+        appendMessageUI(msg.role, msg.content, idx);
+      });
+
+      scrollToBottom();
+    }
+
+    function appendMessageUI(role, content, index) {
+      const thread = document.getElementById('messagesThread');
+      const msgDiv = document.createElement('div');
+      const isUser = role === 'user';
+
+      msgDiv.className = `flex gap-3.5 ${isUser ? 'justify-end' : 'justify-start'} animate-fadeIn`;
+
+      const avatar = isUser
+        ? `<div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-700 flex items-center justify-center shrink-0 shadow-md text-white font-bold text-xs">জু</div>`
+        : `<div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20 text-white"><i class="fa-solid fa-sparkles text-xs"></i></div>`;
+
+      const formattedContent = marked.parse(content);
+
+      msgDiv.innerHTML = `
+        ${!isUser ? avatar : ''}
+        <div class="max-w-[85%] sm:max-w-[78%] rounded-2xl p-4 text-sm leading-relaxed shadow-sm ${
+          isUser 
+            ? 'bg-indigo-600 text-white rounded-br-none' 
+            : 'bg-darkCard border border-slate-800 text-slate-200 rounded-bl-none prose prose-invert'
+        }">
+          <div class="content-body" id="msg-body-${index}">${formattedContent}</div>
+          ${!isUser ? `
+            <div class="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-end gap-2 text-xs text-slate-400">
+              <button onclick="copyText(this)" class="hover:text-white transition flex items-center gap-1">
+                <i class="fa-regular fa-copy"></i>
+                <span class="text-[10px]">Copy</span>
+              </button>
+            </div>
+          ` : ''}
+        </div>
+        ${isUser ? avatar : ''}
+      `;
+
+      thread.appendChild(msgDiv);
+      // Syntax highlight code blocks
+      msgDiv.querySelectorAll('pre code').forEach((el) => {
+        hljs.highlightElement(el);
+      });
+    }
+
+    function scrollToBottom() {
+      const container = document.getElementById('messagesContainer');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function sendQuickPrompt(text) {
+      document.getElementById('promptInput').value = text;
+      document.getElementById('chatForm').requestSubmit();
+    }
+
+    // Submit handler & Streaming
+    async function handleChatSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('promptInput');
+      const text = input.value.trim();
+      if (!text || isGenerating) return;
+
+      const chat = getCurrentChat();
+
+      // Set chat title if first message
+      if (chat.messages.length === 0) {
+        chat.title = text.slice(0, 30) + (text.length > 30 ? '...' : '');
+        renderChatHistory();
+      }
+
+      // Add User Message
+      chat.messages.push({ role: 'user', content: text });
+      saveChats();
+      renderMessages();
+
+      input.value = '';
+      input.style.height = 'auto';
+
+      // Prepare AI Assistant placeholder
+      const aiMsgIndex = chat.messages.length;
+      chat.messages.push({ role: 'assistant', content: '' });
+      appendMessageUI('assistant', '', aiMsgIndex);
+
+      const aiBody = document.getElementById(`msg-body-${aiMsgIndex}`);
+      aiBody.classList.add('typing-cursor');
+
+      // Toggle buttons
+      isGenerating = true;
+      document.getElementById('sendBtn').classList.add('hidden');
+      document.getElementById('stopBtn').classList.remove('hidden');
+
+      abortController = new AbortController();
+
+      // Prepare conversation payload for Ollama
+      const apiMessages = [
+        { role: 'system', content: activeSystemPrompt }
+      ];
+      
+      // Add last few turns
+      const recentHistory = chat.messages.slice(0, -1);
+      recentHistory.forEach(m => {
+        apiMessages.push({ role: m.role, content: m.content });
+      });
+
+      let fullResponse = '';
+
+      try {
+        const response = await fetch(`${OLLAMA_HOST}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: currentModel,
+            messages: apiMessages,
+            stream: true,
+            keep_alive: '24h'
+          }),
+          signal: abortController.signal
+        });
+
+        if (!response.ok) {
+          throw new Error('Ollama Server Error: ' + response.statusText);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            try {
+              const data = JSON.parse(trimmed);
+              if (data.message && data.message.content) {
+                fullResponse += data.message.content;
+                aiBody.innerHTML = marked.parse(fullResponse);
+                scrollToBottom();
+              }
+            } catch (err) {
+              // Ignore partial JSON chunks
+            }
+          }
+        }
+
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          fullResponse += '\n\n*(ব্যবহারকারী কর্তৃক উত্তর থামানো হয়েছে)*';
+        } else {
+          fullResponse = `⚠️ ত্রুটি: ${err.message}\n\nনিশ্চিত করুন Ollama সার্ভার ব্যাকগ্রাউন্ডে চালু আছে।`;
+        }
+        aiBody.innerHTML = marked.parse(fullResponse);
+      } finally {
+        aiBody.classList.remove('typing-cursor');
+        chat.messages[aiMsgIndex].content = fullResponse;
+        saveChats();
+
+        // Highlight codes
+        aiBody.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
+
+        isGenerating = false;
+        abortController = null;
+        document.getElementById('sendBtn').classList.remove('hidden');
+        document.getElementById('stopBtn').classList.add('hidden');
+        scrollToBottom();
+      }
+    }
+
+    function stopGenerating() {
+      if (abortController) {
+        abortController.abort();
+      }
+    }
+
+    function copyText(btn) {
+      const content = btn.closest('.rounded-2xl').querySelector('.content-body').innerText;
+      navigator.clipboard.writeText(content).then(() => {
+        const original = btn.innerHTML;
+        btn.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> <span class="text-[10px] text-emerald-400">Copied!</span>`;
+        setTimeout(() => { btn.innerHTML = original; }, 2000);
+      });
+    }
+
+    function exportChat() {
+      const chat = getCurrentChat();
+      if (!chat || chat.messages.length === 0) return alert('এক্সপোর্ট করার মতো কোনো মেসেজ নেই!');
+      let text = `# ${chat.title}\n\n`;
+      chat.messages.forEach(m => {
+        text += `### ${m.role === 'user' ? 'জুবায়ের' : 'Gemma 4'}:\n${m.content}\n\n---\n\n`;
+      });
+      const blob = new Blob([text], { type: 'text/markdown' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `Gemma4_Chat_${Date.now()}.md`;
+      a.click();
+    }
+
+    // Voice recognition (Bangla & English)
+    let recognition = null;
+    function toggleSpeechRecognition() {
+      const micBtn = document.getElementById('micBtn');
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        return alert('আপনার ব্রাউজারে স্পিচ রিকগনিশন সাপোর্ট করে না (Google Chrome ব্যবহার করুন)।');
+      }
+
+      if (recognition) {
+        recognition.stop();
+        recognition = null;
+        micBtn.classList.remove('text-red-500', 'animate-pulse');
+        return;
+      }
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.lang = 'bn-BD'; // Bengali language recognition
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        micBtn.classList.add('text-red-500', 'animate-pulse');
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        const input = document.getElementById('promptInput');
+        input.value = (input.value ? input.value + ' ' : '') + transcript;
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+      };
+
+      recognition.onend = () => {
+        micBtn.classList.remove('text-red-500', 'animate-pulse');
+        recognition = null;
+      };
+
+      recognition.onerror = () => {
+        micBtn.classList.remove('text-red-500', 'animate-pulse');
+        recognition = null;
+      };
+
+      recognition.start();
+    }
+  </script>
+</body>
+</html>
