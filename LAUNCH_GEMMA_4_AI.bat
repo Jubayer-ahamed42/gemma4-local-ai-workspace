@@ -20,7 +20,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo.
 echo Opening Gemma 4 Web UI in Google Chrome...
-start "" "C:\MY PROJECT\4. GEMMA 4 LOCAL AI\index.html"
+start "" "%~dp0index.html"
 
 echo.
 echo Done! Enjoy talking to your local AI!
