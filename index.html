@@ -142,10 +142,10 @@
           <div class="hidden sm:flex items-center gap-1.5 bg-darkCard/60 border border-slate-800 rounded-xl px-2.5 py-1">
             <span class="text-[11px] text-slate-400">মোড:</span>
             <select id="personaSelector" onchange="changePersona()" class="bg-transparent text-xs font-medium text-indigo-300 outline-none cursor-pointer">
-              <option value="general">🤖 সার্বিক সহকারী</option>
-              <option value="coder">💻 কোডিং এক্সপার্ট</option>
-              <option value="copywriter">📢 মার্কেটিং ও সেলস</option>
-              <option value="nutritionist">🌿 স্বাস্থ্য ও পুষ্টি</option>
+              <option value="general">[AI] সার্বিক সহকারী</option>
+              <option value="coder">[PC] কোডিং এক্সপার্ট</option>
+              <option value="copywriter">[Notice] মার্কেটিং ও সেলস</option>
+              <option value="nutritionist">[Organic] স্বাস্থ্য ও পুষ্টি</option>
             </select>
           </div>
         </div>
@@ -183,7 +183,7 @@
           <!-- Quick Suggestion Buttons -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-xl mx-auto pt-2 text-left">
             <button onclick="sendQuickPrompt('ফ্রেশি ফুডের খাঁটি মধুর জন্য একটি রোমাঞ্চকর ফেসবুক অ্যাড কপি লিখে দাও')" class="p-3 rounded-xl bg-darkCard border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80 transition text-xs text-slate-300 flex items-start gap-2.5 group">
-              <span class="text-base text-amber-400">🍯</span>
+              <span class="text-base text-amber-400"></span>
               <div>
                 <strong class="text-white block group-hover:text-indigo-300 transition">ফ্রেশি ফুড অ্যাড কপি</strong>
                 <span>খাঁটি মধুর জন্য হাই-কনভার্টিং বিজ্ঞাপন</span>
@@ -191,7 +191,7 @@
             </button>
 
             <button onclick="sendQuickPrompt('পাইথনে একটি অটোমেটিক ফেসবুক পেজ পোস্ট শিডিউলার স্ক্রিপ্ট লিখে দাও')" class="p-3 rounded-xl bg-darkCard border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80 transition text-xs text-slate-300 flex items-start gap-2.5 group">
-              <span class="text-base text-cyan-400">💻</span>
+              <span class="text-base text-cyan-400"></span>
               <div>
                 <strong class="text-white block group-hover:text-indigo-300 transition">পাইথন অটোমেশন কোড</strong>
                 <span>সোশ্যাল মিডিয়া শিডিউলার তৈরি</span>
@@ -199,7 +199,7 @@
             </button>
 
             <button onclick="sendQuickPrompt('ডায়াবেটিস ও গ্যাস্ট্রিক রোগীদের জন্য খাঁটি মধু খাওয়ার বৈজ্ঞানিক নিয়ম কী?')" class="p-3 rounded-xl bg-darkCard border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80 transition text-xs text-slate-300 flex items-start gap-2.5 group">
-              <span class="text-base text-emerald-400">🌿</span>
+              <span class="text-base text-emerald-400"></span>
               <div>
                 <strong class="text-white block group-hover:text-indigo-300 transition">স্বাস্থ্য ও পুষ্টি পরামর্শ</strong>
                 <span>ডায়াবেটিসে মধু খাওয়ার সঠিক নিয়ম</span>
@@ -207,7 +207,7 @@
             </button>
 
             <button onclick="sendQuickPrompt('সফল সফটওয়্যার উদ্যোক্তা হওয়ার জন্য প্রতিদিনের ৩টি সেরা অভ্যাস কী?')" class="p-3 rounded-xl bg-darkCard border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800/80 transition text-xs text-slate-300 flex items-start gap-2.5 group">
-              <span class="text-base text-purple-400">🚀</span>
+              <span class="text-base text-purple-400"></span>
               <div>
                 <strong class="text-white block group-hover:text-indigo-300 transition">এন্টারপ্রেনিউরশিপ মাইন্ডসেট</strong>
                 <span>সফটওয়্যার বিজনেসের জন্য প্রতিদিনের রুটিন</span>
@@ -254,7 +254,7 @@
 
           <!-- Status Footer -->
           <div class="mt-2 text-center text-[11px] text-slate-500 flex items-center justify-center gap-3">
-            <span>🛡️ ১০০% অফলাইন ও ব্যক্তিগত — ডাটা পিসির বাইরে যায় না</span>
+            <span>️ ১০০% অফলাইন ও ব্যক্তিগত — ডাটা পিসির বাইরে যায় না</span>
             <span>•</span>
             <span class="text-indigo-400/80 font-mono">localhost:11434</span>
           </div>
@@ -565,7 +565,7 @@
         if (err.name === 'AbortError') {
           fullResponse += '\n\n*(ব্যবহারকারী কর্তৃক উত্তর থামানো হয়েছে)*';
         } else {
-          fullResponse = `⚠️ ত্রুটি: ${err.message}\n\nনিশ্চিত করুন Ollama সার্ভার ব্যাকগ্রাউন্ডে চালু আছে।`;
+          fullResponse = `[!] ত্রুটি: ${err.message}\n\nনিশ্চিত করুন Ollama সার্ভার ব্যাকগ্রাউন্ডে চালু আছে।`;
         }
         aiBody.innerHTML = marked.parse(fullResponse);
       } finally {
